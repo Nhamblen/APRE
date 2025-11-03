@@ -8,8 +8,6 @@
  *
  * I inserted more data into MongoDB in order to display the charts correctly
 
-mongosh "mongodb+srv://apre_user:s3cret@cluster0.lujih.mongodb.net/apre"
-
 use apre;
 
 db.sales.insertMany([
