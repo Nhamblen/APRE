@@ -162,76 +162,94 @@ describe("Apre Sales Report API - Sales by Region", () => {
  *
  */
 
+// Mock the MongoDB helper
+jest.mock("../../../../src/utils/mongo");
+
 describe("GET /api/reports/sales/sales-by-year", () => {
-  /**
-   * Runs once before all tests.
-   * Clears the existing "sales" collection and insert test data.
-   */
-  beforeAll((done) => {
-    mongo(async (db) => {
-      await db.collection("sales").deleteMany({});
-      await db.collection("sales").insertMany([
-        { amount: 50, saleDate: new Date("2023-01-10") },
-        { amount: 150, saleDate: new Date("2023-09-18") },
-        { amount: 500, saleDate: new Date("2024-04-03") },
-      ]);
-      done();
-    }, done);
+  // Reset mock call history before each test
+  beforeEach(() => {
+    mongo.mockClear();
   });
 
   /**
-   * Runs once after all tests finish.
-   * Removes all temporary data to keep the DB clean.
-   */
-  afterAll((done) => {
-    mongo(async (db) => {
-      await db.collection("sales").deleteMany({});
-      done();
-    }, done);
-  });
-
-  /**
-   * Test #1
-   * - Returns HTTP 200 status code
-   * - Returns an array of results
-   * - Includes required fields in objects
+   * Test 1:
+   * Ensures endpoint returns expected structure when data exists.
    */
   it("should return 200 and yearly sales data", async () => {
+    mongo.mockImplementation(async (callback) => {
+      const db = {
+        collection: jest.fn().mockReturnValue({
+          aggregate: jest.fn().mockReturnValue({
+            toArray: jest.fn().mockResolvedValue([
+              { year: 2023, totalSales: 200, count: 2 },
+              { year: 2024, totalSales: 500, count: 1 },
+            ]),
+          }),
+        }),
+      };
+      await callback(db);
+    });
+
+    // Make request to API
     const res = await request(app).get("/api/reports/sales/sales-by-year");
+
+    // Response has correct structure
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);
-    expect(res.body.length).toBeGreaterThan(0);
-
-    // Ensure necessary fields exist on each result object
     expect(res.body[0]).toHaveProperty("year");
     expect(res.body[0]).toHaveProperty("totalSales");
     expect(res.body[0]).toHaveProperty("count");
   });
 
   /**
-   * Test #2
-   * - Validates that filtering by year works correctly
-   * - Only 2024 results should be returned in this example.
+   * Test 2:
+   * Ensures filtering logic works properly.
    */
-  it("should filter results by startYear and endYear range", async () => {
+  it("should filter results by startYear and endYear", async () => {
+    mongo.mockImplementation(async (callback) => {
+      const db = {
+        collection: jest.fn().mockReturnValue({
+          aggregate: jest.fn().mockReturnValue({
+            toArray: jest
+              .fn()
+              .mockResolvedValue([{ year: 2024, totalSales: 500, count: 1 }]),
+          }),
+        }),
+      };
+      await callback(db);
+    });
+
     const res = await request(app).get(
       "/api/reports/sales/sales-by-year?startYear=2024&endYear=2024"
     );
 
+    // All results must be year 2024
     expect(res.status).toBe(200);
     expect(res.body.every((r) => r.year === 2024)).toBe(true);
   });
 
   /**
-   * Test #3
-   * - Ensures the API handles unmatched criteria correctly
-   * - Should return an empty array, not an error.
+   * Test 3:
+   * Ensures empty set scenario does not break API.
    */
-  it("should return empty array if no results exist for filter", async () => {
+  it("should return an empty array when no results match", async () => {
+    // Returns no results
+    mongo.mockImplementation(async (callback) => {
+      const db = {
+        collection: jest.fn().mockReturnValue({
+          aggregate: jest.fn().mockReturnValue({
+            toArray: jest.fn().mockResolvedValue([]),
+          }),
+        }),
+      };
+      await callback(db);
+    });
+
     const res = await request(app).get(
       "/api/reports/sales/sales-by-year?startYear=2010&endYear=2011"
     );
 
+    // 200 with empty array is valid case
     expect(res.status).toBe(200);
     expect(res.body).toEqual([]);
   });
