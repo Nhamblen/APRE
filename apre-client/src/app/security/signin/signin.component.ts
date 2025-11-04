@@ -20,7 +20,7 @@ import { CookieService } from 'ngx-cookie-service';
 
       <form [formGroup]="signinForm" (ngSubmit)="signin();" class="signin__form">
         <div class="signin__form-group">
-          <label for="username" class="signin__label">Username</label>
+          <label for="username" class="signin__label">Username <span class="required">*</span></label>
           <input id="username" formControlName="username" type="text" class="signin__input" />
         </div>
         <div class="signin__form-group">
@@ -32,6 +32,8 @@ import { CookieService } from 'ngx-cookie-service';
       <a href="/" class="signin__return-link">Return to Home</a>
     </div>
   `,
+
+  // added required field to username - minor development task 31 - 11/3/25
   styles: `
     .signin {
       background-color: white;
@@ -43,6 +45,12 @@ import { CookieService } from 'ngx-cookie-service';
       border: 1px solid #ddd; /* Add border */
       font-family: 'Roboto', sans-serif;
     }
+
+    .required {
+  color: red;
+  font-weight: bold;
+  margin-left: 2px;
+}
 
     .signin__title {
       text-align: center;
