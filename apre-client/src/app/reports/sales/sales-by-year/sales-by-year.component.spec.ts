@@ -20,7 +20,6 @@ describe('SalesByYearComponent', () => {
   let httpMock: HttpTestingController;
 
   beforeEach(async () => {
-    // Override template BEFORE compileComponents to prevent <app-calendar> from emitting
     TestBed.overrideComponent(SalesByYearComponent, {
       set: { template: '<!-- template stripped for unit tests -->' }
     });
@@ -38,7 +37,6 @@ describe('SalesByYearComponent', () => {
   });
 
   afterEach(() => {
-    // In case anything slipped through, fail if unflushed requests remain
     httpMock.verify();
   });
 
