@@ -1,6 +1,6 @@
 /**
  * Author: Noah Hamblen
- * Date: 11/8/25
+ * Date: 11/9/25
  * File: agent-performance-by-supervisor.component.spec.ts
  * Description: Angular tests for AgentPerformanceBySupervisorComponent. Major development task M-086.
  */
@@ -27,7 +27,7 @@ describe('AgentPerformanceBySupervisorComponent', () => {
     fixture = TestBed.createComponent(AgentPerformanceBySupervisorComponent);
     component = fixture.componentInstance;
 
-    // Trigger Angular’s initial change detection
+    // Trigger initial change detection
     fixture.detectChanges();
   });
 

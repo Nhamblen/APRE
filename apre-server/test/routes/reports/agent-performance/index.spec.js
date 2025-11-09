@@ -7,20 +7,27 @@
 
 // Require the modules
 const request = require("supertest");
-const app = require("../../../../src/app");
-const { mongo } = require("../../../../src/utils/mongo");
+const assert = require("assert");
+let app;
+let mongo;
 
-jest.mock("../../../../src/utils/mongo");
+beforeEach(() => {
+  jest.resetModules();
+  jest.clearAllMocks();
+  mongo = require("../../../../src/utils/mongo"); // fresh mock reference
+});
+
+// Mock mongo() so we don't connect to a real database
+function mockMongo(fn) {
+  const mongoUtil = require("../../../../src/utils/mongo");
+  mongoUtil.mongo = fn;
+}
 
 // Test the agent performance API
 describe("Apre Agent Performance API", () => {
-  beforeEach(() => {
-    mongo.mockClear();
-  });
-
   // Test the call-duration-by-date-range endpoint
   it("should fetch call duration data for agents within a specified date range", async () => {
-    mongo.mockImplementation(async (callback) => {
+    mockMongo(async (callback) => {
       const db = {
         collection: jest.fn().mockReturnThis(),
         aggregate: jest.fn().mockReturnValue({
@@ -34,6 +41,8 @@ describe("Apre Agent Performance API", () => {
       };
       await callback(db);
     });
+
+    app = require("../../../../src/app");
 
     const response = await request(app).get(
       "/api/reports/agent-performance/call-duration-by-date-range?startDate=2023-01-01&endDate=2023-01-31"
@@ -80,6 +89,10 @@ describe("Apre Agent Performance API", () => {
   });
 });
 
+beforeAll(() => {
+  jest.resetModules(); // clear app and route caches
+});
+
 describe("Agent Performance by Supervisor API", () => {
   // Test 1: Missing supervisor
   it("should return 400 if supervisor is missing", async () => {
@@ -95,7 +108,13 @@ describe("Agent Performance by Supervisor API", () => {
   // Test 2: Valid supervisor with mock data
   it("should return 200 with mock data for a valid supervisor", async () => {
     // Create some fake data to simulate what Mongo would return
-    const fakeData = [{ supervisor: "Jane", agentName: "Bob", totalCalls: 10 }];
+    const fakeData = [
+      {
+        agent: "Olivia Garcia",
+        totalCallDuration: 350,
+        avgResolutionTime: 130,
+      },
+    ];
 
     // Replace the real mongo function with our fake one
     mockMongo(async (callback) => {
@@ -107,9 +126,11 @@ describe("Agent Performance by Supervisor API", () => {
       await callback(db);
     });
 
+    app = require("../../../../src/app");
+
     // Make the API call with a valid supervisor name
     const res = await request(app).get(
-      "/api/reports/agent-performance/agent-performance-by-supervisor?supervisor=Jane"
+      "/api/reports/agent-performance/agent-performance-by-supervisor?supervisorId=650c1f1e1c9d440000a1b1c3"
     );
 
     // Expect a 200 OK response
@@ -122,13 +143,15 @@ describe("Agent Performance by Supervisor API", () => {
   // Test 3: Database error
   it("should return 500 if the database throws an error", async () => {
     // Simulate a database error by making mongo throw
-    mockMongo(async () => {
-      throw new Error("Database error");
+    mockMongo(async (_db, next) => {
+      next(new Error("Database error"));
     });
+
+    app = require("../../../../src/app"); // Included all of these for isolation
 
     // Call the endpoint normally
     const res = await request(app).get(
-      "/api/reports/agent-performance/agent-performance-by-supervisor?supervisor=Jane"
+      "/api/reports/agent-performance/agent-performance-by-supervisor?supervisorId=650c1f1e1c9d440000a1b1c3"
     );
 
     // Expect a 500 Internal Server Error response
