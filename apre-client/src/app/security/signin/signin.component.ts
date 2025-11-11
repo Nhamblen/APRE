@@ -27,13 +27,14 @@ import { CookieService } from 'ngx-cookie-service';
           <label for="password" class="signin__label">Password</label>
           <input id="password" formControlName="password" type="password" class="signin__input" />
         </div>
-        <input type="submit" class="signin__button" Value="Sign in" title="Click to sign in" />
+        <input type="submit" class="signin__button" Value="Submit" title="Click to sign in" />
       </form>
       <a href="/" class="signin__return-link">Return to Home</a>
     </div>
   `,
 
   // added required field to username - minor development task 31 - 11/3/25
+  // added tooltip to sign in button - minor development task 30 - 11/10/25
   styles: `
     .signin {
       background-color: white;
