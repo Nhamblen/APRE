@@ -83,68 +83,93 @@ describe("Apre Customer Feedback API", () => {
   });
 });
 
-/**
- * Tests for the customer-feedback-by-region endpoint
- */
+// Test the customer-feedback-by-region endpoint
+describe("Apre Customer Feedback API (By Region)", () => {
+  beforeEach(() => {
+    mongo.mockClear();
+  });
 
-const request = require("supertest");
-const app = require("../../../../src/app");
-const { mongo } = require("../../../../src/utils/mongo");
-
-jest.mock("../../../../src/utils/mongo");
-
-describe("Customer Feedback By Region API", () => {
-  beforeEach(() => mongo.mockClear());
-
-  // Successful response
-  it("should return data", async () => {
+  // Fetches customer feedback grouped by region
+  it("should fetch customer feedback grouped by region", async () => {
     mongo.mockImplementation(async (callback) => {
-      await callback({
-        collection: () => ({
-          aggregate: () => ({
-            toArray: () =>
-              Promise.resolve([
-                { region: "North America", averageRating: 4.5, feedback: [] },
-              ]),
-          }),
+      const db = {
+        collection: jest.fn().mockReturnThis(),
+        aggregate: jest.fn().mockReturnValue({
+          toArray: jest.fn().mockResolvedValue([
+            {
+              region: "North America",
+              averageRating: 4.5,
+              feedback: [
+                {
+                  product: "Gaming Console V",
+                  rating: 4,
+                  feedbackType: "Positive",
+                  feedbackText: "Good product",
+                },
+              ],
+            },
+          ]),
         }),
-      });
+      };
+
+      await callback(db);
     });
 
-    const res = await request(app).get(
+    const response = await request(app).get(
       "/api/reports/customer-feedback/customer-feedback-by-region"
     );
 
-    expect(res.status).toBe(200);
-    expect(res.body.length).toBe(1);
+    expect(response.status).toBe(200);
+
+    expect(response.body).toEqual([
+      {
+        region: "North America",
+        averageRating: 4.5,
+        feedback: [
+          {
+            product: "Gaming Console V",
+            rating: 4,
+            feedbackType: "Positive",
+            feedbackText: "Good product",
+          },
+        ],
+      },
+    ]);
   });
 
-  // Empty response
-  it("should return an empty array", async () => {
+  // Return an empty array if no data
+  it("should return an empty array when no feedback exists", async () => {
     mongo.mockImplementation(async (callback) => {
-      await callback({
-        collection: () => ({
-          aggregate: () => ({
-            toArray: () => Promise.resolve([]),
-          }),
+      const db = {
+        collection: jest.fn().mockReturnThis(),
+        aggregate: jest.fn().mockReturnValue({
+          toArray: jest.fn().mockResolvedValue([]),
         }),
-      });
+      };
+
+      await callback(db);
     });
 
-    const res = await request(app).get(
+    const response = await request(app).get(
       "/api/reports/customer-feedback/customer-feedback-by-region"
     );
 
-    expect(res.status).toBe(200);
-    expect(res.body).toEqual([]);
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual([]);
   });
 
-  // Invalid endpoint
-  it("should return 404 for invalid route", async () => {
-    const res = await request(app).get(
-      "/api/reports/customer-feedback/not-real"
+  // Return 404 for invalid endpoint
+  it("should return 404 for an invalid endpoint", async () => {
+    const response = await request(app).get(
+      "/api/reports/customer-feedback/invalid-endpoint"
     );
 
-    expect(res.status).toBe(404);
+    expect(response.status).toBe(404);
+
+    expect(response.body).toEqual({
+      message: "Not Found",
+      status: 404,
+      type: "error",
+    });
   });
 });
