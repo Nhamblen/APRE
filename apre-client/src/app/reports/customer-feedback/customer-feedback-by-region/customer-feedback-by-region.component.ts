@@ -10,17 +10,21 @@ import { environment } from '../../../../environments/environment';
   template: `
     <h1>Customer Feedback by Region</h1>
 
+    <!-- Loading indicator -->
     @if (loading) {
       <p>Loading...</p>
     }
 
+    <!-- Display error message if one exists -->
     @if (errorMessage) {
       <div class="message message--error">{{ errorMessage }}</div>
     }
 
+    <!-- Loop through each region returned from the API -->
     @for (region of data; track region.region) {
       <h2>{{ region.region }} (Average Rating: {{ region.averageRating }})</h2>
 
+      <!-- Table showing feedback details for the region -->
       <table class="table">
         <thead>
           <tr>
@@ -32,6 +36,7 @@ import { environment } from '../../../../environments/environment';
         </thead>
 
         <tbody>
+          <!-- Loop through each feedback record for the region -->
           @for (item of region.feedback; track item.feedbackText) {
             <tr>
               <td>{{ item.product }}</td>
@@ -75,23 +80,37 @@ import { environment } from '../../../../environments/environment';
   `]
 })
 export class CustomerFeedbackByRegionComponent {
+  // Stores the API response (list of regions + feedback details)
   data: any[] = [];
+
+  // Holds an error message to display to the user
   errorMessage = '';
+
+  // Controls loading indicator
   loading = true;
 
   constructor(private http: HttpClient) {}
 
+   /**
+   * Automatically runs when the component initializes.
+   * Sends a GET request to fetch customer feedback data
+   * grouped by region.
+   */
   ngOnInit() {
     this.http.get(`${environment.apiBaseUrl}/reports/customer-feedback/customer-feedback-by-region`)
       .subscribe({
+        // Handle successful API response
         next: res => {
           this.data = res as any[];
           this.loading = false;
 
+          // If no data returned, show friendly error message
           if (!this.data.length) {
             this.errorMessage = 'No customer feedback data found.';
           }
         },
+
+        // Handle any network or server errors
         error: () => {
           this.errorMessage = 'Error fetching customer feedback.';
           this.loading = false;

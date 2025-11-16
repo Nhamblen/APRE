@@ -91,6 +91,7 @@ describe("Apre Customer Feedback API (By Region)", () => {
 
   // Fetches customer feedback grouped by region
   it("should fetch customer feedback grouped by region", async () => {
+    // Mock MongoDB response
     mongo.mockImplementation(async (callback) => {
       const db = {
         collection: jest.fn().mockReturnThis(),
@@ -115,12 +116,15 @@ describe("Apre Customer Feedback API (By Region)", () => {
       await callback(db);
     });
 
+    // Send GET request to the API endpoint
     const response = await request(app).get(
       "/api/reports/customer-feedback/customer-feedback-by-region"
     );
 
+    // Expect success
     expect(response.status).toBe(200);
 
+    // Expect the mocked response to match
     expect(response.body).toEqual([
       {
         region: "North America",
@@ -139,6 +143,7 @@ describe("Apre Customer Feedback API (By Region)", () => {
 
   // Return an empty array if no data
   it("should return an empty array when no feedback exists", async () => {
+    // Mock empty result set
     mongo.mockImplementation(async (callback) => {
       const db = {
         collection: jest.fn().mockReturnThis(),
@@ -150,22 +155,27 @@ describe("Apre Customer Feedback API (By Region)", () => {
       await callback(db);
     });
 
+    // Request data
     const response = await request(app).get(
       "/api/reports/customer-feedback/customer-feedback-by-region"
     );
 
+    // Expect success with empty array
     expect(response.status).toBe(200);
     expect(response.body).toEqual([]);
   });
 
   // Return 404 for invalid endpoint
   it("should return 404 for an invalid endpoint", async () => {
+    // Send request to an invalid route
     const response = await request(app).get(
       "/api/reports/customer-feedback/invalid-endpoint"
     );
 
+    // Expect 404
     expect(response.status).toBe(404);
 
+    // Expect standard error response
     expect(response.body).toEqual({
       message: "Not Found",
       status: 404,

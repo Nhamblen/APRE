@@ -21,12 +21,13 @@ describe('CustomerFeedbackByRegionComponent', () => {
   });
 
   afterEach(() => {
+    // Ensure no HTTP requests remain
     httpMock.verify();
   });
 
   // Component creates
   it('should create', () => {
-    // Flush the initial request triggered by ngOnInit()
+    // Respond to the initial API call
     httpMock.expectOne(
       `${environment.apiBaseUrl}/reports/customer-feedback/customer-feedback-by-region`
     ).flush([]);
@@ -40,19 +41,23 @@ describe('CustomerFeedbackByRegionComponent', () => {
       { region: 'North America', averageRating: 4.5, feedback: [] }
     ];
 
+    // Flush mock response
     httpMock.expectOne(
       `${environment.apiBaseUrl}/reports/customer-feedback/customer-feedback-by-region`
     ).flush(mockData);
 
+    // Expect data to be assigned
     expect(component.data.length).toBe(1);
   });
 
   // Show error on empty data
   it('should show error when no data returned', () => {
+    // Flush empty response
     httpMock.expectOne(
       `${environment.apiBaseUrl}/reports/customer-feedback/customer-feedback-by-region`
     ).flush([]);
 
+    // Expect error message to appear
     expect(component.errorMessage).toBe('No customer feedback data found.');
   });
 });

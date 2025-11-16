@@ -109,10 +109,12 @@ router.get("/channel-rating-by-month", (req, res, next) => {
 
 router.get("/customer-feedback-by-region", (req, res, next) => {
   try {
+    // Connect to MongoDB
     mongo(async (db) => {
       const data = await db
         .collection("customerFeedback")
         .aggregate([
+          // Select only the fields we need from each document
           {
             $project: {
               region: 1,
@@ -122,10 +124,13 @@ router.get("/customer-feedback-by-region", (req, res, next) => {
               feedbackText: 1,
             },
           },
+
+          // Group documents by region
           {
             $group: {
               _id: "$region",
               feedback: {
+                // Push feedback information into an array
                 $push: {
                   product: "$product",
                   rating: "$rating",
@@ -133,15 +138,17 @@ router.get("/customer-feedback-by-region", (req, res, next) => {
                   feedbackText: "$feedbackText",
                 },
               },
-              averageRating: { $avg: "$rating" },
+              averageRating: { $avg: "$rating" }, // Calculate average rating per region
             },
           },
+
+          // Format the final output
           {
             $project: {
-              _id: 0,
-              region: "$_id",
-              feedback: 1,
-              averageRating: { $round: ["$averageRating", 2] },
+              _id: 0, // Remove internal MongoDB _id
+              region: "$_id", // Rename _id to region
+              feedback: 1, // Include feedback list
+              averageRating: { $round: ["$averageRating", 2] }, // Round average rating to 2 decimals
             },
           },
         ])
