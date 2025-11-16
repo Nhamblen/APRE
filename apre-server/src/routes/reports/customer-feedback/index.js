@@ -5,11 +5,11 @@
  * Description: Apre customer feedback API for the customer feedback reports
  */
 
-'use strict';
+"use strict";
 
-const express = require('express');
-const { mongo } = require('../../../utils/mongo');
-const createError = require('http-errors');
+const express = require("express");
+const { mongo } = require("../../../utils/mongo");
+const createError = require("http-errors");
 
 const router = express.Router();
 
@@ -25,80 +25,134 @@ const router = express.Router();
  *  .then(response => response.json())
  *  .then(data => console.log(data));
  */
-router.get('/channel-rating-by-month', (req, res, next) => {
+router.get("/channel-rating-by-month", (req, res, next) => {
   try {
     const { month } = req.query;
 
     if (!month) {
-      return next(createError(400, 'month and channel are required'));
+      return next(createError(400, "month and channel are required"));
     }
 
-    mongo (async db => {
-      const data = await db.collection('customerFeedback').aggregate([
-        {
-          $addFields: {
-            date: { $toDate: '$date' }
-          }
-        },
-        {
-          $group: {
-            _id: {
-              channel: "$channel",
-              month: { $month: "$date" },
+    mongo(async (db) => {
+      const data = await db
+        .collection("customerFeedback")
+        .aggregate([
+          {
+            $addFields: {
+              date: { $toDate: "$date" },
             },
-            ratingAvg: { $avg: '$rating'}
-          }
-        },
-        {
-          $match: {
-            '_id.month': Number(month)
-          }
-        },
-        {
-          $group: {
-            _id: '$_id.channel',
-            ratingAvg: { $push: '$ratingAvg' }
-          }
-        },
-        {
-          $project: {
-            _id: 0,
-            channel: '$_id',
-            ratingAvg: 1
-          }
-        },
-        {
-          $group: {
-            _id: null,
-            channels: { $push: '$channel' },
-            ratingAvg: { $push: '$ratingAvg' }
-          }
-        },
-        {
-          $project: {
-            _id: 0,
-            channels: 1,
-            ratingAvg: 1
-          }
-        }
-      ]).toArray();
+          },
+          {
+            $group: {
+              _id: {
+                channel: "$channel",
+                month: { $month: "$date" },
+              },
+              ratingAvg: { $avg: "$rating" },
+            },
+          },
+          {
+            $match: {
+              "_id.month": Number(month),
+            },
+          },
+          {
+            $group: {
+              _id: "$_id.channel",
+              ratingAvg: { $push: "$ratingAvg" },
+            },
+          },
+          {
+            $project: {
+              _id: 0,
+              channel: "$_id",
+              ratingAvg: 1,
+            },
+          },
+          {
+            $group: {
+              _id: null,
+              channels: { $push: "$channel" },
+              ratingAvg: { $push: "$ratingAvg" },
+            },
+          },
+          {
+            $project: {
+              _id: 0,
+              channels: 1,
+              ratingAvg: 1,
+            },
+          },
+        ])
+        .toArray();
 
       res.send(data);
     }, next);
-
   } catch (err) {
-    console.error('Error in /rating-by-date-range-and-channel', err);
+    console.error("Error in /rating-by-date-range-and-channel", err);
     next(err);
   }
 });
 
 /**
  * @description
- *
  * GET /customer-feedback-by-region
  *
- * Fetches cusstomer feedback data for a region.
- *
+ * Returns customer feedback grouped by region, including:
+ * - product
+ * - rating
+ * - feedbackType
+ * - feedbackText
+ * - region
+ * - averageRating (calculated per region)
  */
+
+router.get("/customer-feedback-by-region", (req, res, next) => {
+  try {
+    mongo(async (db) => {
+      const data = await db
+        .collection("customerFeedback")
+        .aggregate([
+          {
+            $project: {
+              region: 1,
+              product: 1,
+              rating: 1,
+              feedbackType: 1,
+              feedbackText: 1,
+            },
+          },
+          {
+            $group: {
+              _id: "$region",
+              feedback: {
+                $push: {
+                  product: "$product",
+                  rating: "$rating",
+                  feedbackType: "$feedbackType",
+                  feedbackText: "$feedbackText",
+                },
+              },
+              averageRating: { $avg: "$rating" },
+            },
+          },
+          {
+            $project: {
+              _id: 0,
+              region: "$_id",
+              feedback: 1,
+              averageRating: { $round: ["$averageRating", 2] },
+            },
+          },
+        ])
+        .toArray();
+
+      res.send(data);
+    }, next);
+  } catch (err) {
+    console.error("Error in /customer-feedback-by-region", err);
+    next(err);
+  }
+});
 
 module.exports = router;
