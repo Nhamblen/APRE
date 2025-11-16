@@ -92,4 +92,13 @@ router.get('/channel-rating-by-month', (req, res, next) => {
   }
 });
 
+/**
+ * @description
+ *
+ * GET /customer-feedback-by-region
+ *
+ * Fetches cusstomer feedback data for a region.
+ *
+ */
+
 module.exports = router;
